@@ -1,0 +1,48 @@
+name: pr_has_changelog
+on:
+  workflow_call:
+
+jobs:
+  check_event_and_label:
+    runs-on: ubuntu-latest
+    outputs:
+      # look for a label that indicates that we should skip subsequent checks
+      # store the result of this in an output
+      skip_label_set: ${{ (github.event_name == 'pull_request') && contains(github.event.pull_request.labels.*.name, 'no-news-is-good-news') }}
+    steps:
+      - name: fail on unsupported events
+        if: ${{ ! (github.event_name == 'pull_request') }}
+        run: |
+          echo "::error:: pr_has_changelog can only run on Pull Requests"
+          exit 1
+
+  check_has_news_in_changelog_dir:
+    needs: check_event_and_label
+    runs-on: ubuntu-latest
+    steps:
+      # do a deep fetch to allow merge-base and diff
+      # and ensure we are checking out the PR head
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      # if the skip label is set, the job should succeed but this step should be skipped
+      - name: check PR adds a news file
+        if: ${{ ! needs.check_event_and_label.outputs.skip_label_set }}
+        # TODO: the following parts of this line need to be configurable:
+        #   - branch name (currently 'main')
+        #   - file extension (currently '.md')
+        #
+        # TODO: this will currently accept edits to a README.md in the changelog.d/ dir
+        #       we should ideally exclude README.* or even a configurable pattern
+        run: |
+          news_files="$(git diff --name-only "$(git merge-base origin/main "$GITHUB_SHA")" "$GITHUB_SHA" -- changelog.d/*.md)"
+          if [ -n "$news_files" ]; then
+            echo "Saw new files. changelog.d:"
+            echo "$news_files"
+          else
+            echo "No news files seen"
+            exit 1
+          fi
+
