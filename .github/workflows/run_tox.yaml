@@ -11,7 +11,8 @@ on:
         required: true
         type: string
       tox-env:
-        required: true
+        required: false
+        default: py
         type: string
       tox-command:
         required: false
