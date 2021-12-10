@@ -1,0 +1,28 @@
+name: run tox env
+
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        required: false
+        default: ubuntu-latest
+        type: string
+      python-version:
+        required: true
+        type: string
+      tox-env:
+        required: true
+        type: string
+
+jobs:
+  setup-tox:
+    runs-on: ${{ inputs.runs-on }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ inputs.python-version }}
+      - name: install tox
+        run: python -m pip install -U tox
+      - name: run tox ${{ inputs.tox-env }}
+        run: python -m tox -e ${{ inputs.tox-env }}
