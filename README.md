@@ -17,7 +17,7 @@ on:
   pull_request:
 jobs:
   lint:
-    uses: globus/reusable-workflows/.github/workflows/run_tox.yaml@v1
+    uses: globus/workflows/.github/workflows/run_tox.yaml@v1
     with:
       python-version: "3.10"
       tox-env: lint
@@ -49,7 +49,7 @@ on:
 
 jobs:
   check_changelog:
-    uses: globus/reusable-workflows/.github/workflows/pr_has_changelog.yaml@v1
+    uses: globus/workflows/.github/workflows/pr_has_changelog.yaml@v1
 ```
 
 ## Versioning
