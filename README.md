@@ -21,5 +21,5 @@ on:
 
 jobs:
   check_changelog:
-    uses: globus/workflows/.github/workflows/pr_has_changelog.yaml@v1
+    uses: globus/workflows/.github/workflows/pr_has_changelog.yaml@v1.0
 ```
