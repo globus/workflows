@@ -1,18 +1,20 @@
 repos:
-- repo: https://github.com/pre-commit/pre-commit-hooks.git
-  rev: v4.0.1
-  hooks:
-    - id: check-merge-conflict
-    - id: trailing-whitespace
-- repo: https://github.com/sirosen/check-jsonschema
-  rev: 0.7.1
-  hooks:
-    - id: check-github-workflows
-- repo: https://github.com/sirosen/texthooks
-  rev: 0.2.2
-  hooks:
-    - id: fix-smartquotes
-      args: ["--show-changes"]
-    - id: fix-ligatures
-      args: ["--show-changes"]
-    - id: forbid-bidi-controls
+  - repo: "https://github.com/pre-commit/pre-commit-hooks"
+    rev: "v5.0.0"
+    hooks:
+      - id: "check-merge-conflict"
+      - id: "trailing-whitespace"
+
+  - repo: "https://github.com/sirosen/check-jsonschema"
+    rev: "0.29.4"
+    hooks:
+      - id: "check-github-workflows"
+
+  - repo: "https://github.com/sirosen/texthooks"
+    rev: "0.6.7"
+    hooks:
+      - id: "fix-smartquotes"
+        args: ["--show-changes"]
+      - id: "fix-ligatures"
+        args: ["--show-changes"]
+      - id: "forbid-bidi-controls"
