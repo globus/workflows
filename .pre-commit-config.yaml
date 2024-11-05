@@ -24,3 +24,8 @@ repos:
       - id: "fix-ligatures"
         args: ["--show-changes"]
       - id: "forbid-bidi-controls"
+
+  - repo: "https://github.com/rhysd/actionlint"
+    rev: "v1.7.4"
+    hooks:
+      - id: "actionlint"
