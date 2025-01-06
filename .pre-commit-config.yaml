@@ -12,12 +12,12 @@ repos:
       - id: "trailing-whitespace"
 
   - repo: "https://github.com/sirosen/check-jsonschema"
-    rev: "0.29.4"
+    rev: "0.30.0"
     hooks:
       - id: "check-github-workflows"
 
   - repo: "https://github.com/sirosen/texthooks"
-    rev: "0.6.7"
+    rev: "0.6.8"
     hooks:
       - id: "alphabetize-codeowners"
       - id: "fix-smartquotes"
@@ -27,6 +27,6 @@ repos:
       - id: "forbid-bidi-controls"
 
   - repo: "https://github.com/rhysd/actionlint"
-    rev: "v1.7.4"
+    rev: "v1.7.6"
     hooks:
       - id: "actionlint"
