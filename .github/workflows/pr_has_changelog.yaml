@@ -10,12 +10,9 @@ on:
         type: 'string'
 
       changelog-type:
-        description: 'Markdown or Restructured Text'
-        type: 'choice'
+        description: 'The file extension used for changelog items (e.g., "md" or "rst").'
+        type: 'string'
         default: 'md'
-        options:
-          - 'md'
-          - 'rst'
 
       base-branch:
         description: 'The branch against which the changelog comparison is run.'
