@@ -2,6 +2,15 @@
 
 The changelog is continuous. All changes are made to the current version branch.
 
+## v1.4
+
+### `tox.yaml`
+
+- Separate tox environment creation from execution.
+- Add the tox-gh plugin to group tox environment output.
+- Update check-jsonschema to v0.35.0.
+- Use uv for venv creation and check-jsonschema execution.
+
 ## v1.3
 
 ### `pr_has_changelog.yaml`
