@@ -1,6 +1,31 @@
 # CHANGELOG
 
-The changelog is continuous. All changes are made to the current version branch.
+## v2.0
+
+### `tox.yaml`
+
+_Copied from v1.8 in its source repo._
+
+- Add a `timeout-minutes` key for configuring job timeouts.
+  Jobs now timeout after 15 minutes by default.
+
+### `create-pr`
+
+_Copied from v1.8 in its source repo._
+
+- Runs a tox label, commits the changes, and opens a PR.
+
+### `create-tag-and-release`
+
+_Copied from v1.8 in its source repo._
+
+- Creates an annotated git tag and a GitHub release.
+
+### `build-python-package`
+
+_Copied from v1.8 in its source repo._
+
+- Builds a Python package and uploads an artifact.
 
 ## v1.4
 
