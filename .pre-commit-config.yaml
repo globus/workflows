@@ -30,3 +30,5 @@ repos:
     rev: "v1.7.10"
     hooks:
       - id: "actionlint"
+        additional_dependencies:
+          - "github.com/wasilibs/go-shellcheck/cmd/shellcheck@v0.11.1"
