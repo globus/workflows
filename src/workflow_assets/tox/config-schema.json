@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema",
+  "type": "object",
+  "required": [
+    "runner"
+  ],
+  "properties": {
+    "runner": {
+      "type": "string",
+      "minLength": 1
+    },
+    "timeout-minutes": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "tox-environments": {
+      "description": "A list of tox environments to run.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "tox-skip-environments-regex": {
+      "description": "A regular expression matching tox environments to skip.",
+      "type": "string",
+      "format": "regex",
+      "minLength": 1
+    },
+    "tox-skip-environments": {
+      "description": "A list of tox environments to skip.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "tox-environments-from-pythons": {
+      "description": "Generate a list of tox environments from the list of all configured Python interpreters.",
+      "type": "boolean",
+      "enum": [true]
+    },
+    "tox-factors": {
+      "description": "A list of factors to append to the generated names of tox environments.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "tox-pre-environments": {
+      "description": "A list of tox environments to run before all installed Python interpreter versions.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "tox-post-environments": {
+      "description": "A list of tox environments to run after all installed Python interpreter versions.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "cpythons": {
+      "description": "A list of CPython interpreter versions. The *last version* listed will be the default Python interpreter when 'python' is invoked, and will be the version used when installing and executing tox.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "cpython-beta": {
+      "description": "A CPython version to install as a beta. A beta CPython interpreter will never be the default Python interpreter.",
+      "type": "string",
+      "minLength": 3
+    },
+    "pypys": {
+      "description": "A list of PyPy interpreter versions. PyPy interpreters will never be the default Python interpreter.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "cache-key-prefix": {
+      "description": "A prefix to use with the cached environment key.",
+      "type": "string",
+      "minLength": 1,
+      "default": "tox"
+    },
+    "cache-key-hash-files": {
+      "description": "An additional path pattern that will be added to the list of paths to include when hashing files for cache-busting.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "cache-paths": {
+      "description": "Additional paths to cache. Any paths specified here will be added to the default list: '.venv/' and '.tox/'.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "allOf": [
+    {
+      "description": "At least one Python interpreter must be specified.",
+      "anyOf": [
+        {"required": ["cpythons"]},
+        {"required": ["cpython-beta"]},
+        {"required": ["pypys"]}
+      ]
+    },
+    {
+      "description": "If tox-environments is specified, many other keys must not be specified.",
+      "if": {"required": ["tox-environments"]},
+      "then": {
+        "allOf": [
+          {
+            "description": "tox-environments is mutually exclusive with tox-environments-from-pythons.",
+            "not": {"required": ["tox-environments-from-pythons"]}
+          },
+          {
+            "description": "tox-environments is mutually exclusive with tox-factors.",
+            "not": {"required": ["tox-factors"]}
+          },
+          {
+            "description": "tox-environments is mutually exclusive with tox-pre-environments.",
+            "not": {"required": ["tox-pre-environments"]}
+          },
+          {
+            "description": "tox-environments is mutually exclusive with tox-post-environments.",
+            "not": {"required": ["tox-post-environments"]}
+          },
+          {
+            "description": "tox-environments is mutually exclusive with tox-skip-environments.",
+            "not": {"required": ["tox-skip-environments"]}
+          },
+          {
+            "description": "tox-environments is mutually exclusive with tox-skip-environments-regex.",
+            "not": {"required": ["tox-skip-environments-regex"]}
+          }
+        ]
+      }
+    }
+  ]
+}

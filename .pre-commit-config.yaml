@@ -2,31 +2,87 @@ ci:
   autoupdate_schedule: "quarterly"
 
 default_language_version:
-  python: "python3.12"
+  python: "python3.13"
 
 repos:
-  - repo: "https://github.com/pre-commit/pre-commit-hooks"
-    rev: "v6.0.0"
+  - repo: "meta"
     hooks:
+      - id: "check-hooks-apply"
+      - id: "check-useless-excludes"
+
+  - repo: "https://github.com/pre-commit/pre-commit-hooks"
+    rev: "3e8a8703264a2f4a69428a0aa4dcb512790b2c8c"  # frozen: v6.0.0
+    hooks:
+      - id: "check-added-large-files"
       - id: "check-merge-conflict"
+      - id: "check-json"
+      - id: "check-yaml"
+      - id: "end-of-file-fixer"
+      - id: "mixed-line-ending"
+        args:
+          - "--fix=lf"
       - id: "trailing-whitespace"
 
-  - repo: "https://github.com/sirosen/check-jsonschema"
-    rev: "0.36.0"
+  - repo: "https://github.com/asottile/pyupgrade"
+    rev: "75992aaa40730136014f34227e0135f63fc951b4"  # frozen: v3.21.2
     hooks:
-      - id: "check-github-workflows"
+      - id: "pyupgrade"
+        name: "Enforce Python 3.13+ idioms"
+        args:
+          - "--py313-plus"
 
-  - repo: "https://github.com/sirosen/texthooks"
-    rev: "0.7.1"
+  - repo: "https://github.com/psf/black-pre-commit-mirror"
+    rev: "ea488cebbfd88a5f50b8bd95d5c829d0bb76feb8"  # frozen: 26.1.0
     hooks:
-      - id: "alphabetize-codeowners"
-      - id: "fix-smartquotes"
-        args: ["--show-changes"]
-      - id: "fix-ligatures"
-        args: ["--show-changes"]
-      - id: "forbid-bidi-controls"
+      - id: "black"
+
+  - repo: "https://github.com/pycqa/isort"
+    rev: "3459bdee0962449aad91235273c3fd1306dfebe5"  # frozen: 8.0.0
+    hooks:
+      - id: "isort"
+
+  - repo: "https://github.com/pycqa/flake8"
+    rev: "c48217e1fc006c2dddd14df54e83b67da15de5cd"  # frozen: 7.3.0
+    hooks:
+      - id: "flake8"
+        additional_dependencies:
+          - "flake8-toml-config==1.0.0"
+          - "flake8-bugbear==25.11.29"
+
+  - repo: "https://github.com/editorconfig-checker/editorconfig-checker"
+    rev: "aa06cea887b26f372f9368aa53665266ec6dc364"  # frozen: v3.6.1
+    hooks:
+      - id: "editorconfig-checker"
+
+  - repo: "https://github.com/python-jsonschema/check-jsonschema"
+    rev: "f761d025eb06bcd6a45bf152ba3593c9b8ad9a9b"  # frozen: 0.36.2
+    hooks:
+      - id: "check-dependabot"
+      - id: "check-github-workflows"
+      - id: "check-metaschema"
+        files: "src/.+-schema.json"
+
+  - repo: "https://github.com/adhtruong/mirrors-typos"
+    rev: "1dba9b5417293c3976bb185228a6aff50616b548"  # frozen: v1.43.5
+    hooks:
+      - id: "typos"
+
+  - repo: "local"
+    hooks:
+      - id: "render-workflow-templates"
+        name: "Render workflow templates"
+        language: "python"
+        entry: "python src/render-templates.py"
+        always_run: true
+        pass_filenames: false
+        additional_dependencies:
+          # additional_dependencies source: requirements/templating/requirements.txt
+          - 'jinja2==3.1.6 ; python_version == "3.13"'
+          - 'markupsafe==3.0.3 ; python_version == "3.13"'
 
   - repo: "https://github.com/rhysd/actionlint"
-    rev: "v1.7.10"
+    rev: "393031adb9afb225ee52ae2ccd7a5af5525e03e8"  # frozen: v1.7.11
     hooks:
       - id: "actionlint"
+        additional_dependencies:
+          - "github.com/wasilibs/go-shellcheck/cmd/shellcheck@4e7020840c303923eb1ab846fc446d77be892570"
