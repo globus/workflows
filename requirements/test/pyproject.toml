@@ -1,0 +1,18 @@
+[tool.poetry]
+package-mode = false
+
+[project]
+name = "dependencies"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "coverage[toml]",
+    "jsonschema",
+    "pyfakefs",
+    "pytest",
+    "pytest-randomly",
+]
+
+[dependency-groups]
+coverage = [
+    "coverage[toml]",
+]

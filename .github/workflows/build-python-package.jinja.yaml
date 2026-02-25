@@ -1,0 +1,99 @@
+# This file is a part of the Globus GitHub Workflows project.
+# https://github.com/globus/workflows
+# Copyright 2021-2026 Globus <support@globus.org>
+# Copyright 2024-2026 Kurt McKee <contactme@kurtmckee.org>
+# SPDX-License-Identifier: MIT
+
+on:
+  workflow_call:
+    outputs:
+      artifact-id:
+        description: "The artifact ID that can be subsequently downloaded"
+        value: "${{ jobs.build.outputs.artifact-id }}"
+      packages-path:
+        description: "The path to the Python packages"
+        value: "${{ jobs.build.outputs.packages-path }}"
+
+env:
+  PYTHON_VERSION: "[[ PYTHON_VERSION ]]"
+  UV_VERSION: "[[ UV_VERSION ]]"
+  ARTIFACT_NAME: "build-python-package-${{ github.run_id }}"
+  PACKAGES_PATH: "./dist"
+  BUILD_REQUIREMENTS: |
+    [[ include_requirements("build") | indent(4) ]]
+
+jobs:
+  #[#-
+  # Halt execution if an attempt is made to run the template directly.
+  # This block is enclosed in a Jinja comment and will not be rendered.
+  halt:
+    name: "Halt"
+    runs-on: "ubuntu-slim"
+    steps:
+      - name: "Halt"
+        run: |
+          echo "::error::⚠️ Do not run the workflow template directly."
+          exit 1
+  #]#
+  build:
+    #[#-
+    # The `needs` key is in a Jinja comment and will not be rendered.
+    needs: ["halt"]
+    #]#
+    name: "Build"
+    runs-on: "ubuntu-24.04"
+    permissions:
+      contents: "read"
+    outputs:
+      artifact-id: "${{ steps.upload-packages.outputs.artifact-id }}"
+      packages-path: "${{ steps.packages-path.outputs.packages-path }}"
+    steps:
+      - name: "Setup Python"
+        uses: "actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405" # v6.2.0
+        with:
+          python-version: "${{ env.PYTHON_VERSION }}"
+
+      - name: "Install uv"
+        uses: "astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867" # v7.1.6
+        with:
+          version: "${{ env.UV_VERSION }}"
+          enable-cache: "false"
+          ignore-empty-workdir: "true"
+
+      - name: "Checkout the repository"
+        uses: "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd" # v6.0.2
+        with:
+          ref: "${{ github.sha }}"
+          persist-credentials: "false"
+
+      - name: "Build the package"
+        env:
+          PIP_DISABLE_PIP_VERSION_CHECK: "1"
+        run: |
+          REQUIREMENTS_PATH="$(mktemp)"
+          echo "${BUILD_REQUIREMENTS}" > "${REQUIREMENTS_PATH}"
+
+          uv run \
+            --no-managed-python \
+            --no-project \
+            --with-requirements="${REQUIREMENTS_PATH}" \
+            --module build --installer=uv --outdir="${PACKAGES_PATH}"
+
+      - name: "Show checksums"
+        run: |
+          sha256sum "${PACKAGES_PATH}"/*
+
+      - name: "Upload the built packages"
+        id: "upload-packages"
+        uses: "actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f" # v6.0.0
+        with:
+          name: "${{ env.ARTIFACT_NAME }}"
+          path: "${{ env.PACKAGES_PATH }}"
+          if-no-files-found: "error"
+          retention-days: "1"
+          overwrite: "false"
+
+      - name: "Create packages-path output"
+        id: "packages-path"
+        run: |
+          echo "packages-path=${PACKAGES_PATH}" >> "${GITHUB_OUTPUT}"

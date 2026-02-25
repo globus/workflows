@@ -1,0 +1,198 @@
+# This file is a part of the Globus GitHub Workflows project.
+# https://github.com/globus/workflows
+# Copyright 2021-2026 Globus <support@globus.org>
+# Copyright 2024-2026 Kurt McKee <contactme@kurtmckee.org>
+# SPDX-License-Identifier: MIT
+
+on:
+  workflow_call:
+    outputs:
+      project-version:
+        description: "The detected project version"
+        value: "${{ jobs.tag.outputs.project-version }}"
+      tag-name:
+        description: "The name of the created tag"
+        value: "${{ jobs.tag.outputs.tag-name }}"
+
+env:
+  PYTHON_VERSION: "[[ PYTHON_VERSION ]]"
+  UV_VERSION: "[[ UV_VERSION ]]"
+  PANDOC_VERSION: "3.8.3"
+  SCRIV_REQUIREMENTS: |
+    [[ include_requirements("scriv") | indent(4) ]]
+
+jobs:
+  #[#-
+  # Halt execution if an attempt is made to run the template directly.
+  # This block is enclosed in a Jinja comment and will not be rendered.
+  halt:
+    name: "Halt"
+    runs-on: "ubuntu-slim"
+    steps:
+      - name: "Halt"
+        run: |
+          echo "::error::⚠️ Do not run the workflow template directly."
+          exit 1
+  #]#
+  tag:
+    #[#-
+    # The `needs` key is in a Jinja comment and will not be rendered.
+    needs: ["halt"]
+    #]#
+    name: "Tag"
+    runs-on: "ubuntu-24.04"
+    permissions:
+      contents: "write"
+    outputs:
+      project-version: "${{ steps.get-tag-name.outputs.project-version }}"
+      tag-name: "${{ steps.get-tag-name.outputs.tag-name }}"
+    steps:
+      - name: "Checkout the repository"
+        uses: "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd" # v6.0.2
+        with:
+          ref: "${{ github.sha }}"
+          fetch-depth: "0"
+          fetch-tags: "true"
+          persist-credentials: "false"
+
+      - name: "Setup Python"
+        uses: "actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405" # v6.2.0
+        with:
+          python-version: "${{ env.PYTHON_VERSION }}"
+
+      - name: "Install uv"
+        uses: "astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867" # v7.1.6
+        with:
+          version: "${{ env.UV_VERSION }}"
+          enable-cache: "false"
+          ignore-empty-workdir: "true"
+
+      - name: "Get tag name"
+        id: "get-tag-name"
+        # Creates new environment variables:
+        #
+        # * TAG_NAME (version with a "v" prefix)
+        #
+        # Creates outputs:
+        #
+        # * project-version (exact string from `pyproject.toml`)
+        # * tag-name (project-version with a "v" prefix)
+        #
+        shell: "python"
+        run: |
+          [[ include_file("get_tag_name.py") | indent(10) ]]
+
+      - name: "Verify version has no git tag conflicts"
+        id: "verify-repo-state"
+        # Creates outputs:
+        #
+        # * tag-exists
+        #
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: "python"
+        run: |
+          [[ include_file("validate_repo_state.py") | indent(10) ]]
+
+      - name: "Get GitHub Actions bot information"
+        if: "steps.verify-repo-state.outputs.tag-exists == 'false'"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # Creates new environment variables:
+        #
+        # * BOT_NAME
+        # * BOT_EMAIL
+        #
+        run: |
+          # Get the Github Actions bot's email address in this environment.
+          # The email address on github.com is well-known,
+          # but the bot ID may differ on GHES instances.
+          BOT_NAME='github-actions[bot]'
+
+          BOT_ID="$(gh api "/users/${BOT_NAME}" | jq --raw-output .id)"
+          BOT_EMAIL="${BOT_ID}+${BOT_NAME}@users.noreply.github.com"
+
+          echo "BOT_NAME=${BOT_NAME}" >> "${GITHUB_ENV}"
+          echo "BOT_EMAIL=${BOT_EMAIL}" >> "${GITHUB_ENV}"
+
+      - name: "Install pandoc"
+        if: "steps.verify-repo-state.outputs.tag-exists == 'false'"
+        env:
+          PANDOC_DEB_URL: "https://github.com/jgm/pandoc/releases/download/${{ env.PANDOC_VERSION }}/pandoc-${{ env.PANDOC_VERSION }}-1-amd64.deb"
+        run: |
+          wget -nv -O pandoc.deb "${PANDOC_DEB_URL}"
+          sudo dpkg -i ./pandoc.deb
+          rm ./pandoc.deb
+
+      - name: "Generate the annotated git tag content"
+        if: "steps.verify-repo-state.outputs.tag-exists == 'false'"
+        # Creates new environment variables:
+        #
+        # * TAG_BODY_PATH
+        #
+        run: |
+          REQUIREMENTS_PATH="$(mktemp)"
+          echo "${SCRIV_REQUIREMENTS}" > "${REQUIREMENTS_PATH}"
+
+          uv run \
+            --no-managed-python \
+            --no-project \
+            --with-requirements="${REQUIREMENTS_PATH}" \
+            scriv print --version "${TAG_NAME}" >> "${RUNNER_TEMP}/changelog-fragment.rst"
+
+          export TAG_BODY_PATH="${RUNNER_TEMP}/tag-body.gfm"
+          echo "TAG_BODY_PATH=${TAG_BODY_PATH}" >> "${GITHUB_ENV}"
+
+          pandoc \
+            --from=rst \
+            --to=gfm \
+            --shift-heading-level-by=1 \
+            --wrap=preserve \
+            --output="${TAG_BODY_PATH}" \
+            "${RUNNER_TEMP}/changelog-fragment.rst"
+
+      - name: "Create a git tag"
+        if: "steps.verify-repo-state.outputs.tag-exists == 'false'"
+        env:
+          GH_TOKEN: "${{ github.token }}"
+        run: |
+          TAG_BODY="$(cat "${TAG_BODY_PATH}")"
+          export TAG_BODY
+
+          TAG_OBJECT_SHA="$(gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "/repos/${GITHUB_REPOSITORY}/git/tags" \
+            -f "type=commit" \
+            -f "tag=${TAG_NAME}" \
+            -f "message=${TAG_BODY}" \
+            -f "object=${GITHUB_SHA}" \
+            -f "tagger[name]=${BOT_NAME}" \
+            -f "tagger[email]=${BOT_EMAIL}" \
+            | jq -r '.sha' \
+          )"
+          export TAG_OBJECT_BODY
+
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "/repos/${GITHUB_REPOSITORY}/git/refs" \
+            -f "ref=refs/tags/${TAG_NAME}" \
+            -f "sha=${TAG_OBJECT_SHA}"
+
+          git fetch --tags
+
+      - name: "Create a GitHub release"
+        env:
+          GH_TOKEN: "${{ github.token }}"
+        run: |
+          if gh release view "${TAG_NAME}" 1>/dev/null 2>/dev/null; then
+            echo "Release ${TAG_NAME} exists."
+          else
+            gh release create "${TAG_NAME}" \
+              --notes-from-tag \
+              --target "${GITHUB_SHA}" \
+              --title "${TAG_NAME}"
+          fi
