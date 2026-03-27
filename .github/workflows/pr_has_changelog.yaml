@@ -1,7 +1,6 @@
 # This file is a part of the Globus GitHub Workflows project.
 # https://github.com/globus/workflows
 # Copyright 2021-2026 Globus <support@globus.org>
-# Copyright 2024-2026 Kurt McKee <contactme@kurtmckee.org>
 # SPDX-License-Identifier: MIT
 
 name: pr_has_changelog
@@ -50,6 +49,7 @@ jobs:
       - uses: "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd" # v6.0.2
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: "false"
           fetch-depth: 0
 
       # if the skip label is set, the job should succeed but this step should be skipped
@@ -61,8 +61,11 @@ jobs:
           )
         # TODO: this will currently accept edits to a README.md in the changelog.d/ dir
         #       we should ideally exclude README.* or even a configurable pattern
+        env:
+          BASE_BRANCH: "${{ inputs.base-branch }}"
+          CHANGELOG_TYPE: "${{ inputs.changelog-type }}"
         run: |
-          news_files="$(git diff --name-only "$(git merge-base origin/${{ inputs.base-branch }} "$GITHUB_SHA")" "$GITHUB_SHA" -- changelog.d/*.${{ inputs.changelog-type }})"
+          news_files="$(git diff --name-only "$(git merge-base "origin/${BASE_BRANCH}" "$GITHUB_SHA")" "$GITHUB_SHA" -- changelog.d/*."${CHANGELOG_TYPE}")"
           if [ -n "$news_files" ]; then
             echo "Saw new files. changelog.d:"
             echo "$news_files"

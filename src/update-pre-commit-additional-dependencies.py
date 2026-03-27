@@ -18,11 +18,13 @@ def main() -> None:
 
     lines = []
     iterable = iter(config.splitlines())
+    found = False
     for line in iterable:
         lines.append(line)
         if not line.lstrip().startswith("# additional_dependencies source:"):
             continue
 
+        found = True
         target_requirements_file = line.partition(":")[2].strip()
         indent = len(line) - len(line.lstrip())
 
@@ -39,6 +41,9 @@ def main() -> None:
 
         if next_line is not None:
             lines.append(next_line)
+
+    if not found:
+        raise OSError("No 'additional_dependencies source' comment found")
 
     new_config = "\n".join(lines) + "\n"
     if new_config != config:

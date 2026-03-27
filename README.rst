@@ -13,7 +13,7 @@ Globus GitHub Workflows
 
 ---------------------------------------------------------------------------
 
-This repo centralizes Globus' GitHub workflows.
+This repo centralizes Globus' public GitHub workflows.
 
 In many cases, workflows in other Globus repositories can be minimized
 to a set of configuration values and a reference to the workflows here.
@@ -54,76 +54,156 @@ Usage example:
 tox
 ===
 
-The ``tox.yaml`` workflow captures best practices I have found over the years
-that optimize test suite execution, including tools, plugins, and caching.
+`Workflow documentation <docs/tox.rst>`__
 
-It has the following features:
+The ``tox.yaml`` workflow captures hard-earned lessons for running tox in CI
+to optimize test suite execution, including tools, plugins, and caching.
 
-*   Configurable runners
-*   Multiple CPython/PyPy interpreter versions per runner
-*   Selectable tox environments
-*   Schema validation of the inputs passed to the workflow
-*   Fast tox environment creation using the ``tox-uv`` plugin
-*   Built-in caching of tox and virtual environments with strong cache-busting
+..  code-block:: yaml
 
-For information about how to configure the ``tox.yaml`` workflow,
-please see `the tox workflow documentation`_ in the ``docs/`` directory.
+    name: "🧪 Test"
 
-..  _the tox workflow documentation: docs/tox.rst
+    on:
+      pull_request:
+      push:
+        branches:
+          - "main"
+
+    jobs:
+      test:
+        permissions:
+          contents: "read"
+        strategy:
+          matrix:
+            runner:
+              - "ubuntu-latest"
+              - "macos-latest"
+              - "windows-latest"
+
+            # The single value in this `include` section will be added to each runner.
+            include:
+              - cpythons:
+                  - "3.10"
+                  - "3.11"
+                  - "3.12"
+                  - "3.13"
+                  - "3.14"
+                cpython-beta: "3.15"
+
+        uses: "globus/workflows/.github/workflows/tox.yaml@???"
+        with:
+          config: "${{ toJSON(matrix) }}"
 
 
 create-pr
 =========
 
-The ``create-pr.yaml`` workflow cuts release PRs
-and automates regular update PRs as needed.
+`Workflow documentation <docs/create-pr.rst>`__
 
-It has the following features:
+The ``create-pr.yaml`` workflow cuts release PRs.
+It helps kick off an automated release process.
 
-*   A ``version`` workflow input, suitable for cutting new releases
-*   Settings for customizing branches, commits, and PRs
-*   Verified commits via the GitHub Actions bot account
-*   Schema validation of the inputs passed to the workflow
+..  code-block:: yaml
 
-For information about how to use the ``create-pr.yaml`` workflow,
-please see `the create-pr workflow documentation`_ in the ``docs/`` directory.
+    name: "✨ Prep release"
+    on:
+      workflow_dispatch:
+        inputs:
+          version:
+            description: "The version to release"
+            type: "string"
+            required: true
 
-..  _the create-pr workflow documentation: docs/create-pr.rst
+    jobs:
+      prep-release:
+        name: "Prep release v${{ inputs.version }}"
+
+        permissions:
+          contents: "write"
+          pull-requests: "write"
+
+        strategy:
+          matrix:
+            include:
+              - branch-name: "release/$VERSION"
+                commit-title: "Update project metadata for v$VERSION"
+                pr-title: "Release v$VERSION"
+                tox-label-create-changes: "prep-release"
+
+        uses: "globus/workflows/.github/workflows/create-pr.yaml@???"
+        with:
+          config: "${{ toJSON(matrix) }}"
+          version: "${{ inputs.version }}"
 
 
 create-tag-and-release
 ======================
 
+`Workflow documentation <docs/create-tag-and-release.rst>`__
+
 The ``create-tag-and-release.yaml`` workflow creates a git tag and a GitHub release.
+It adds the version's changelog fragment as the release body.
 
-It has the following features:
+..  code-block:: yaml
 
-*   The project version is extracted from ``pyproject.toml``.
-*   The version's CHANGELOG entry is extracted using scriv.
-*   An annotated git tag named ``v$VERSION`` is created.
-    The tag body contains the CHANGELOG entry in GitHub-formatted Markdown.
-*   A GitHub release, also named ``v$VERSION``, is created.
+    name: "🏷️ Tag and release"
+    on:
+      push:
+        branches:
+          - "releases"
 
-For information about how te use the ``create-tag-and-release.yaml`` workflow,
-please see `the create-tag-and-release workflow documentation`_
-in the ``docs/`` directory.
+    jobs:
+      tag:
+        name: "Tag and release"
 
-..  _the create-tag-and-release workflow documentation: docs/create-tag-and-release.rst
+        permissions:
+          contents: "write"
+
+        uses: "globus/workflows/.github/workflows/create-tag-and-release.yaml@..."
 
 
 build-python-package
 ====================
 
+`Workflow documentation <docs/build-python-package.rst>`__
+
 The ``build-python-package.yaml`` workflow builds a Python sdist and wheel,
-and uploads an artifact containing these.
+and uploads a GitHub artifact containing these.
+It helps make automated releases to PyPI trivial.
 
-It has the following features:
+..  code-block:: yaml
 
-*   The project is built using the ``build`` module.
-*   An artifact is uploaded to GitHub, suitable for download and publication to PyPI.
+    name: "📦 Publish"
+    on:
+      push:
+        branches:
+          - "releases"
 
-For information about how te use the ``build-python-package.yaml`` workflow,
-please see `the build-python-package workflow documentation`_
-in the ``docs/`` directory.
+    jobs:
+      build:
+        name: "Build"
 
-..  _the build-python-package workflow documentation: docs/build-python-package.rst
+        permissions:
+          contents: "read"
+
+        uses: "globus/workflows/.github/workflows/build-python-package.yaml@..."
+
+      publish:
+        name: "Publish"
+        needs:
+          - "build"
+        runs-on: "ubuntu-24.04"
+        environment: "PyPI"
+        permissions:
+          id-token: "write"
+        steps:
+          - name: "Download artifact"
+            uses: "actions/download-artifact@..."
+            with:
+              artifact-ids: "${{ needs.build.outputs.artifact-id }}"
+              path: "${{ needs.build.outputs.packages-path }}"
+
+          - name: "Publish package distributions to PyPI"
+            uses: "pypa/gh-action-pypi-publish@???"
+            with:
+              packages-dir: "${{ needs.build.outputs.packages-path }}"

@@ -25,11 +25,13 @@ Changed
 
 *   Lock almost all software dependencies.
 *   Update all software dependencies.
+*   ``tox``: Bust the cache if the workflow's locked dependencies change.
 
 Documentation
 -------------
 
 *   Add extensive documentation for almost all of the workflows.
+*   Document how to create new templated workflows.
 
 Development
 -----------
@@ -41,6 +43,8 @@ Development
 
 *   Use prek to update pre-commit hook versions.
 
-*   Wholesale copy all of the infrastructure from ``kurtmckee/github-workflows``.
+*   Wholesale copy all of the infrastructure from ``kurtmckee/github-workflows@v2.1``.
 
     This ensures that this repo can evolve independently as needed.
+
+*   Introduce zizmor and address its warnings.

@@ -5,30 +5,6 @@ classifiers = ["Private :: Do not Upload"]
 requires-python = ">=3.13,<3.14"
 
 
-# chipshot
-# --------
-
-[tool.chipshot]
-template = """
-This file is a part of the Globus GitHub Workflows project.
-https://github.com/globus/workflows
-Copyright 2021-2026 Globus <support@globus.org>
-Copyright 2024-2026 Kurt McKee <contactme@kurtmckee.org>
-SPDX-License-Identifier: MIT
-"""
-exclusions = [
-    ".github/workflows/_prep-release.yaml",
-    ".github/workflows/_test.yaml",
-]
-
-[tool.chipshot.prologues.do-not-edit-comment]
-pattern = "^# DO NOT EDIT.+$"
-
-[tool.chipshot.extensions.yaml]
-prologue = "do-not-edit-comment"
-style = "hash"
-
-
 # coverage
 # --------
 

@@ -20,6 +20,12 @@ which must be a JSON object serialized via GitHub's ``toJSON()`` workflow functi
 Table of contents
 =================
 
+*   `Requirements`_
+*   `Permissions`_
+*   `Inputs`_
+
+    *   `config`_
+
 *   `Config keys`_
 
     *   `Runners`_
@@ -27,9 +33,60 @@ Table of contents
     *   `Tox environments`_
     *   `Caching`_
 
+*   `Outputs`_
 *   `Passing the config to the workflow`_
 *   `Workflow examples`_
 *   `Controlling the job name`_
+
+
+Requirements
+============
+
+Tox must be runnable without additional software dependencies.
+
+
+Permissions
+===========
+
+The workflow requires the GitHub token to have read permissions for ``contents``.
+
+This is the default, but it is recommended that permissions be explicitly set.
+
+..  code-block:: yaml
+
+    permissions:
+      contents: "read"
+
+
+Inputs
+======
+
+..  _config:
+
+``config``
+----------
+
+The workflow requires a JSON-serialized input named ``"config"``.
+
+The best way to accomplish this is by using a matrix configuration,
+and using the ``toJSON()`` function to serialize it as a workflow input:
+
+..  code-block:: yaml
+
+    strategy:
+      matrix:
+        include:
+          - tox-label-create-changes: "update"
+
+    # ...
+
+    uses: "globus/workflows/.github/workflows/tox.yaml@???"
+    with:
+      config: "${{ toJSON(matrix) }}"
+
+
+For more information about the supported ``config`` object keys,
+see the next sections.
 
 
 Config keys
@@ -362,6 +419,12 @@ Caching
           key: "...${{ hashFiles('.python-identifiers', '.workflow-config.json', 'tox.ini', '.hash-files.sha') }}"
 
 
+Outputs
+=======
+
+None.
+
+
 Passing the config to the workflow
 ==================================
 
@@ -379,7 +442,7 @@ and using the ``toJSON()`` function to serialize it as a workflow input:
         cpythons:
           - ["3.13"]
 
-    uses: "globus/workflows/.github/workflows/tox.yaml@v1"
+    uses: "globus/workflows/.github/workflows/tox.yaml@???"
     with:
       config: "${{ toJSON(matrix) }}"
 
@@ -405,6 +468,8 @@ Test all Python versions on each operating system
 
     jobs:
       test:
+        permissions:
+          contents: "read"
         strategy:
           matrix:
             runner:
@@ -424,7 +489,7 @@ Test all Python versions on each operating system
                   - "3.10"
                   - "3.11"
 
-        uses: "globus/workflows/.github/workflows/tox.yaml@v1"
+        uses: "globus/workflows/.github/workflows/tox.yaml@???"
         with:
           config: "${{ toJSON(matrix) }}"
 
@@ -450,6 +515,8 @@ Run individual configurations
 
     jobs:
       test:
+        permissions:
+          contents: "read"
         strategy:
           matrix:
             include:
@@ -467,7 +534,7 @@ Run individual configurations
                   - "3.10"
                   - "3.13"
 
-        uses: "globus/workflows/.github/workflows/tox.yaml@v1"
+        uses: "globus/workflows/.github/workflows/tox.yaml@???"
         with:
           config: "${{ toJSON(matrix) }}"
 
